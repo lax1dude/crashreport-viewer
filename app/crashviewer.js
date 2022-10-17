@@ -215,47 +215,50 @@ function updateSource(srcMap) {
 	var hasShownWarning = false;
 	for(var i = 0; i < lines.length; ++i) {
 		var l = lines[i];
-		var split = l.split(":");
 
-		if(split.length > 1) {
-			var firstToken = split[0].toLowerCase();
-			if(firstToken.endsWith("error")) {
-				if(!hasShownWarning) {
-					hasShownWarning = true;
-					printVersionWarning(vers);
-				}
-				appElements.outputContent.appendChild(highlightLine(l + "\n"));
-				continue;
-			}else if(split.length > 2) {
-				var lineTrim = split[split.length - 2].trim();
-				var lineNo = parseInt(lineTrim);
-				var colTrim = split[split.length - 1].trim();
-				var colNo = parseInt(colTrim);
-				if(isNaN(colNo)) {
-					if(colTrim.length > 1) {
-						colNo = parseInt(colTrim.substring(0, colTrim.length - 1));
+		if(l.indexOf("eagswebrtc") === -1) {
+			var split = l.split(":");
+
+			if(split.length > 1) {
+				var firstToken = split[0].toLowerCase();
+				if(firstToken.endsWith("error")) {
+					if(!hasShownWarning) {
+						hasShownWarning = true;
+						printVersionWarning(vers);
 					}
-				}
-				if(!isNaN(lineNo) && !isNaN(colNo)) {
-					var original = formatLine(srcMap.originalPositionFor({ line: lineNo, column: colNo }));
-					if(original !== null) {
-						if(firstToken.endsWith("line")) {
-							appElements.outputContent.appendChild(document.createTextNode(lines[i] + " "));
-							appElements.outputContent.appendChild(highlightLine(original + "\n"));
-						}else {
-							if(!hasShownWarning) {
-								hasShownWarning = true;
-								printVersionWarning(vers);
-							}
-							var idt = getIndent(split[0]);
-							var realStart = split[0].substring(idt.length);
-							if(realStart.startsWith("at")) {
-								appElements.outputContent.appendChild(highlightLine(idt + "at " + original + "\n"));
-							}else {
-								appElements.outputContent.appendChild(highlightLine(idt + original + "\n"));
-							}
+					appElements.outputContent.appendChild(highlightLine(l + "\n"));
+					continue;
+				}else if(split.length > 2) {
+					var lineTrim = split[split.length - 2].trim();
+					var lineNo = parseInt(lineTrim);
+					var colTrim = split[split.length - 1].trim();
+					var colNo = parseInt(colTrim);
+					if(isNaN(colNo)) {
+						if(colTrim.length > 1) {
+							colNo = parseInt(colTrim.substring(0, colTrim.length - 1));
 						}
-						continue;
+					}
+					if(!isNaN(lineNo) && !isNaN(colNo)) {
+						var original = formatLine(srcMap.originalPositionFor({ line: lineNo, column: colNo }));
+						if(original !== null) {
+							if(firstToken.endsWith("line")) {
+								appElements.outputContent.appendChild(document.createTextNode(lines[i] + " "));
+								appElements.outputContent.appendChild(highlightLine(original + "\n"));
+							}else {
+								if(!hasShownWarning) {
+									hasShownWarning = true;
+									printVersionWarning(vers);
+								}
+								var idt = getIndent(split[0]);
+								var realStart = split[0].substring(idt.length);
+								if(realStart.startsWith("at")) {
+									appElements.outputContent.appendChild(highlightLine(idt + "at " + original + "\n"));
+								}else {
+									appElements.outputContent.appendChild(highlightLine(idt + original + "\n"));
+								}
+							}
+							continue;
+						}
 					}
 				}
 			}
