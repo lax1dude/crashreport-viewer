@@ -209,6 +209,13 @@ function printVersionWarning(vers) {
 
 function updateSource(srcMap) {
 	clearDecodedView();
+
+	var firstLine = 0;
+	var j = parseInt(appElements.firstLineValue.value);
+	if(!isNaN(j) && j > 1 && appElements.enableFirstLine.checked) {
+		firstLine = j - 1;
+	}
+
 	var sourceValue = appElements.inputTextArea.value;
 	var lines = sourceValue.split(/\r?\n/g);
 	var vers = extractVersionFromFile(lines);
@@ -239,25 +246,28 @@ function updateSource(srcMap) {
 						}
 					}
 					if(!isNaN(lineNo) && !isNaN(colNo)) {
-						var original = formatLine(srcMap.originalPositionFor({ line: lineNo, column: colNo }));
-						if(original !== null) {
-							if(firstToken.endsWith("line")) {
-								appElements.outputContent.appendChild(document.createTextNode(lines[i] + " "));
-								appElements.outputContent.appendChild(highlightLine(original + "\n"));
-							}else {
-								if(!hasShownWarning) {
-									hasShownWarning = true;
-									printVersionWarning(vers);
-								}
-								var idt = getIndent(split[0]);
-								var realStart = split[0].substring(idt.length);
-								if(realStart.startsWith("at")) {
-									appElements.outputContent.appendChild(highlightLine(idt + "at " + original + "\n"));
+						var newLineNumber = lineNo - firstLine;
+						if(newLineNumber > 0) {
+							var original = formatLine(srcMap.originalPositionFor({ line: newLineNumber, column: colNo }));
+							if(original !== null) {
+								if(firstToken.endsWith("line")) {
+									appElements.outputContent.appendChild(document.createTextNode(lines[i] + " "));
+									appElements.outputContent.appendChild(highlightLine(original + "\n"));
 								}else {
-									appElements.outputContent.appendChild(highlightLine(idt + original + "\n"));
+									if(!hasShownWarning) {
+										hasShownWarning = true;
+										printVersionWarning(vers);
+									}
+									var idt = getIndent(split[0]);
+									var realStart = split[0].substring(idt.length);
+									if(realStart.startsWith("at")) {
+										appElements.outputContent.appendChild(highlightLine(idt + "at " + original + "\n"));
+									}else {
+										appElements.outputContent.appendChild(highlightLine(idt + original + "\n"));
+									}
 								}
+								continue;
 							}
-							continue;
 						}
 					}
 				}
@@ -420,6 +430,56 @@ function showFileChooser() {
 	fileChooserElement.click();
 }
 
+function changeFirstLineShading(en) {
+	if(en) {
+		appElements.firstLineText.style.color = "white";
+		appElements.firstLineValue.disabled = false;
+	}else {
+		appElements.firstLineText.style.color = "#999999";
+		appElements.firstLineValue.disabled = true;
+	}
+}
+
+var changeFirstLineTimout = -1;
+
+function handleChangeFirstLineEnabled() {
+	changeFirstLineTimout = -1;
+	var cookie = {};
+	cookie.enableFirstLine = appElements.enableFirstLine.checked;
+	var i = parseInt(appElements.firstLineValue.value);
+	var is_nan = isNaN(i);
+	if(!is_nan || cookie.enableFirstLine) {
+		if(is_nan || i < 1) {
+			i = 1;
+		}
+		cookie.firstLineValue = i;
+		window.localStorage.setItem("crashReportViewer_conf", JSON.stringify(cookie));
+	}
+	changeFirstLineShading(cookie.enableFirstLine);
+	if(!isShowingOriginal) {
+		updateDecodedPane();
+	}
+}
+
+function changeFirstLineEnabled() {
+	if(changeFirstLineTimout != -1) {
+		clearTimeout(changeFirstLineTimout);
+	}
+	changeFirstLineTimout = setTimeout(handleChangeFirstLineEnabled, 300);
+}
+
+function changeFirstLineEnabledImmediate() {
+	if(changeFirstLineTimout != -1) {
+		clearTimeout(changeFirstLineTimout);
+	}
+	var i = parseInt(appElements.firstLineValue.value);
+	var is_nan = isNaN(i);
+	if(is_nan || i < 1) {
+		appElements.firstLineValue.value = "1";
+	}
+	handleChangeFirstLineEnabled();
+}
+
 window.addEventListener("load", () => {
 
 	appElements = {
@@ -430,7 +490,10 @@ window.addEventListener("load", () => {
 		outputTextArea: document.getElementById("outputTextArea"),
 		outputContent: document.getElementById("outputContent"),
 		fetchingMessage: document.getElementById("fetchingMessage"),
-		loadingDots: document.getElementById("loadingDots")
+		loadingDots: document.getElementById("loadingDots"),
+		enableFirstLine: document.getElementById("enableFirstLine"),
+		firstLineText: document.getElementById("firstLineText"),
+		firstLineValue: document.getElementById("firstLineValue")
 	};
 
 	dotsInterval = setInterval(updateDots, 300);
@@ -451,6 +514,27 @@ window.addEventListener("load", () => {
 	appElements.inputTextArea.addEventListener("paste", textAreaPasteHandler);
 
 	appElements.sourceMaps.addEventListener("change", comboBoxChangeHandler);
+
+	appElements.enableFirstLine.addEventListener("change", changeFirstLineEnabledImmediate);
+	appElements.firstLineValue.addEventListener("propertychange", changeFirstLineEnabled);
+	appElements.firstLineValue.addEventListener("change", changeFirstLineEnabled);
+	appElements.firstLineValue.addEventListener("click", changeFirstLineEnabled);
+	appElements.firstLineValue.addEventListener("keyup", changeFirstLineEnabled);
+	appElements.firstLineValue.addEventListener("input", changeFirstLineEnabled);
+	appElements.firstLineValue.addEventListener("paste", changeFirstLineEnabled);
+
+	var cookie = window.localStorage.getItem("crashReportViewer_conf");
+	if(cookie) {
+		try {
+			cookie = JSON.parse(cookie);
+			if(cookie && typeof cookie.firstLineValue === "number") {
+				appElements.enableFirstLine.checked = !!cookie.enableFirstLine;
+				appElements.firstLineValue.value = "" + cookie.firstLineValue;
+				changeFirstLineShading(!!cookie.enableFirstLine);
+			}
+		}catch(e) {
+		}
+	}
 
 	fetch("sourceMaps.json")
 		.then((r) => r.json())
