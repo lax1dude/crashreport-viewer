@@ -156,10 +156,10 @@ function highlightLine(line) {
 function formatLine(srcMapLine) {
 	if(srcMapLine.line !== null) {
 		if(srcMapLine.name === null) {
-			return (srcMapLine.source === null ? "<unknown>" : srcMapLine.source) + ":" +
+			return (srcMapLine.source === null ? "<anonymous>" : srcMapLine.source) + ":" +
 				srcMapLine.line + (srcMapLine.column > 0 ? ":" + srcMapLine.column : "");
 		}else {
-			return "" + srcMapLine.name + " (" + (srcMapLine.source === null ? "<unknown>" :
+			return "" + srcMapLine.name + " (" + (srcMapLine.source === null ? "<anonymous>" :
 				srcMapLine.source) + ":" + srcMapLine.line + ":" + (srcMapLine.column > 0 ? ":" +
 				srcMapLine.column : "") + ")";
 		}
@@ -223,7 +223,7 @@ function updateSource(srcMap) {
 	for(var i = 0; i < lines.length; ++i) {
 		var l = lines[i];
 
-		if(l.indexOf("eagswebrtc") === -1) {
+		if(l.indexOf("<anonymous>") === -1 && l.indexOf("eagswebrtc") === -1) {
 			var split = l.split(":");
 
 			if(split.length > 1) {
